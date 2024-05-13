@@ -1,0 +1,35 @@
+# Dependency directories
+node_modules/
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Directory for storing session data
+sessions/
+
+# Environment variables
+.env
+
+# Compiled binary addons (if any)
+build/Release
+
+# Dependency lock file
+package-lock.json
+
+# Yarn lock file
+yarn.lock
+
+# IDE and editor specific files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
