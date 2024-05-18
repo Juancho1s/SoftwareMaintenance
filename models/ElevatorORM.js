@@ -73,4 +73,4 @@ carry_listORM.belongsTo(elevatorORM, {
   as: "elevator",
 });
 
-module.exports = { elevatorORM };
+module.exports = { elevatorORM, direction_listORM, carry_listORM };
