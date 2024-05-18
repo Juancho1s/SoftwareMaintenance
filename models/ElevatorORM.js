@@ -59,14 +59,18 @@ const carry_listORM = sequelize.define("carry_list", {
 });
 
 // Set up associations
-elevatorORM.hasMany(direction_listORM, {
-    foreignKey: 'elevator_direction_id',
-    as: 'directions'
-  });
-  
-  direction_listORM.belongsTo(elevatorORM, {
-    foreignKey: 'elevator_direction_id',
-    as: 'elevator'
-  });
+elevatorORM.hasMany(direction_listORM);
 
-module.exports = {elevatorORM};
+elevatorORM.hasMany(carry_listORM);
+
+direction_listORM.belongsTo(elevatorORM, {
+  foreignKey: "elevator_direction_id",
+  as: "elevator",
+});
+
+carry_listORM.belongsTo(elevatorORM, {
+  foreignKey: "elevatro_stop_id",
+  as: "elevator",
+});
+
+module.exports = { elevatorORM };
