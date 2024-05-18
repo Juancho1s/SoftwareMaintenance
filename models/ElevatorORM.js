@@ -13,18 +13,17 @@ const elevatorORM = sequelize.define('elevator', {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
-  alarm: {
-    type: DataTypes.TINYINT,
-    allowNull: false,
-  },
   state: {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
-  door_state: {
-    type: DataTypes.TINYINT,
+  signal: {
+    type: DataTypes.INTEGER,
     allowNull: false,
   },
+  last_change: {
+    type: DataTypes.DATE,
+  }
 });
 
 const direction_listORM = sequelize.define('direction_list', {
