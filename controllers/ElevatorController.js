@@ -123,8 +123,8 @@ class ElevatorController {
   }
 
   static async changeFloor(
-    id = DataTypes.INTEGER,
-    nextFloor = DataTypes.INTEGER
+    id,
+    nextFloor
   ) {
     var currntStage = await this.getByID(id);
 
