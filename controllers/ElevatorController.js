@@ -1,49 +1,41 @@
-const { isColString } = require("sequelize/lib/utils");
-const {
-  elevatorORM,
-  direction_listORM,
-  carry_listORM,
-} = require("../models/ElevatorORM");
+const { elevatorORM } = require("../models/ElevatorORM");
 const { outputFormats } = require("./services/formats");
+const { DataTypes } = require("sequelize");
 
 class ElevatorController {
-  static async getAllData(req, res, next) {
+  static async getAllData() {
     try {
       var results = await elevatorORM.findAll();
 
       if (results) {
-        res.json(
-          outputFormats.okOutput("All data found successfully!", 200, results)
+        return outputFormats.okOutput(
+          "All data found successfully!",
+          200,
+          results
         );
       } else {
-        res.json(outputFormats.errorOutput("No data found", 404));
+        return outputFormats.errorOutput("No data found", 404);
       }
     } catch (error) {
-      res.json(
-        outputFormats.errorOutput(`Internal server error: ${error}`, 500)
-      );
+      return outputFormats.errorOutput(`Internal server error: ${error}`, 500);
     }
   }
 
-  static async getByID(req, res, next) {
+  static async getByID(id) {
     try {
-      var results = await elevatorORM.findByPk(req.params.id);
+      var results = await elevatorORM.findByPk(id);
 
       if (results) {
-        res.json(
-          outputFormats.okOutput("Data found successfully!", 200, results)
-        );
+        return outputFormats.okOutput("Data found successfully!", 200, results);
       } else {
-        res.json(outputFormats.errorOutput("No data found", 404));
+        return outputFormats.errorOutput("No data found", 404);
       }
     } catch (error) {
-      res.json(
-        outputFormats.errorOutput(`Internal server error: ${error}`, 500)
-      );
+      return outputFormats.errorOutput(`Internal server error: ${error}`, 500);
     }
   }
 
-  static async modifyState(req, res, next) {
+  static async modifyState(data, id) {
     /*
     state 0: stand
     state 1: up
@@ -51,24 +43,24 @@ class ElevatorController {
     state 3: maintenance
     */
 
-    var data = req.body;
-
     if (!("state" in data)) {
-      res.json(
-        outputFormats.errorOutput(
-          `Bad request: you are missing the 'state' key in your json request`,
-          400
-        )
+      return outputFormats.errorOutput(
+        `Bad request: you are missing the 'state' key in your json request`,
+        400
+      );
+      return;
+    } else if (isNaN(id)) {
+      return outputFormats.errorOutput(
+        `Bad request: the parameter on the URL '/elevators/<<id>>' must be integer.`,
+        400
       );
     }
 
     var state = data["state"];
     if ((state > 3) | (state < 0) | isNaN(state)) {
-      res.json(
-        outputFormats.errorOutput(
-          `Bad request: the 'state' key must be between 0 and 3`,
-          400
-        )
+      return outputFormats.errorOutput(
+        `Bad request: the 'state' key must be between 0 and 3`,
+        400
       );
     }
 
@@ -103,11 +95,9 @@ class ElevatorController {
         break;
 
       default:
-        res.json(
-          outputFormats.errorOutput(
-            `Bad request: no case found for the current state`,
-            400
-          )
+        return outputFormats.errorOutput(
+          `Bad request: no case found for the current state`,
+          400
         );
     }
 
@@ -115,20 +105,71 @@ class ElevatorController {
 
     try {
       var results = await elevatorORM.update(updateFields, {
-        where: { id: req.params.id },
+        where: { id: id },
       });
 
       if (results) {
-        res.json(
-          outputFormats.okOutput("Data modified successfully!", 200, results)
+        return outputFormats.okOutput(
+          "Data modified successfully!",
+          200,
+          results
         );
       } else {
-        res.json(outputFormats.errorOutput("No data modified", 404));
+        return outputFormats.errorOutput("No data modified", 404);
       }
     } catch (error) {
-      res.json(
-        outputFormats.errorOutput(`Internal server error: ${error}`, 500)
+      return outputFormats.errorOutput(`Internal server error: ${error}`, 500);
+    }
+  }
+
+  static async changeFloor(
+    id = DataTypes.INTEGER,
+    nextFloor = DataTypes.INTEGER
+  ) {
+    var currntStage = await this.getByID(id);
+
+    if (currntStage["status"] != 200) {
+      return currntStage;
+    }
+
+    switch (currntStage[0].dataValues) {
+      case 0:
+        break;
+
+      case 1:
+        break;
+
+      case 2:
+        break;
+
+      case 3:
+        break;
+
+      default:
+        break;
+    }
+
+    try {
+      var results = await elevatorORM.update(
+        {
+          floor: req.body.floor,
+          last_change: Date.now(),
+        },
+        {
+          where: { id: req.params.id },
+        }
       );
+      if (results) {
+        return outputFormats.okOutput(
+          "Data modified successfully!",
+          200,
+          results
+        );
+      } else {
+        return outputFormats.errorOutput("No data modified", 404);
+      }
+    } catch (error) {
+      return outputFormats.errorOutput(`Internal server error: ${error}`, 500);
     }
   }
 }

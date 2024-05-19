@@ -2,6 +2,7 @@ var express = require("express");
 var router = express.Router();
 
 const { ElevatorController } = require("../controllers/ElevatorController");
+const { elevatorORM } = require("../models/ElevatorORM.JS");
 
 /* GET home page. */
 router.get("/", function (req, res, next) {
@@ -10,6 +11,12 @@ router.get("/", function (req, res, next) {
   });
 });
 
+/* Get */
 router.get("/elevators", ElevatorController.getAllData);
+router.get("/elevators/:id", ElevatorController.getByID);
+
+/* Put */
+router.put("/elevators/:id", ElevatorController.modifyState);
+
 
 module.exports = router;
