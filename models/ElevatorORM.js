@@ -41,32 +41,11 @@ const direction_listORM = sequelize.define('direction_list', {
   },
 });
 
-const carry_listORM = sequelize.define('carry_list', {
-  stop_floor_number: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  },
-  elevatro_stop_id: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: elevatorORM, // This references the table name directly
-      key: "id",
-    },
-  },
-});
-
 // Set up associations
 elevatorORM.hasMany(direction_listORM);
 
-elevatorORM.hasMany(carry_listORM);
-
 direction_listORM.belongsTo(elevatorORM, {
   foreignKey: "elevator_direction_id",
-});
-
-carry_listORM.belongsTo(elevatorORM, {
-  foreignKey: "elevatro_stop_id",
 });
 
 module.exports = { elevatorORM, direction_listORM, carry_listORM };

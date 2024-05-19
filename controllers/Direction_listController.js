@@ -13,7 +13,10 @@ class Direction_listController {
         );
       }
 
-      return outputFormats.errorOutput(`No data modified`, 400);
+      return outputFormats.errorOutput(
+        "Conflict, there is already written the number you have introduced",
+        409
+      );
     } catch (error) {
       return outputFormats.errorOutput(`Internal server error: ${error}`, 500);
     }
@@ -21,7 +24,10 @@ class Direction_listController {
 
   static async deleteDirection(floor) {
     if (isNaN(floor)) {
-        return outputFormats.errorOutput(`The 'floor' parameter must be a number`, 400);
+      return outputFormats.errorOutput(
+        `The 'floor' parameter must be a number`,
+        400
+      );
     }
     try {
       const results = await direction_listORM.destroy({
@@ -36,7 +42,6 @@ class Direction_listController {
       }
 
       return outputFormats.errorOutput(`No data found to delete`, 404);
-
     } catch (error) {
       return outputFormats.errorOutput(`Internal server error: ${error}`, 500);
     }
@@ -53,7 +58,27 @@ class Direction_listController {
         );
       }
 
-      return outputFormats.errorOutput("No data retrieved", 400);
+      return outputFormats.errorOutput("No data retrieved", 404);
+    } catch (error) {
+      return outputFormats.errorOutput(`Internal server error: ${error}`, 500);
+    }
+  }
+
+  static async getDataByForeign(elevatorId) {
+    try {
+      const allDirections = await direction_listORM.findAll({
+        where: { direction_elevator_id: elevatorId },
+      });
+      if (allDirections) {
+        return outputFormats.okOutput(
+          "All directions have been successfully retrieved.",
+          200,
+          allDirections
+        );
+      }
+
+      return outputFormats.errorOutput("No data retrieved", 404);
+
     } catch (error) {
       return outputFormats.errorOutput(`Internal server error: ${error}`, 500);
     }

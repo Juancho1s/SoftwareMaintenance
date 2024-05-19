@@ -1,5 +1,6 @@
 const { elevatorORM } = require("../models/ElevatorORM");
 const { outputFormats } = require("./services/formats");
+const { Direction_listController } = require("./Direction_listController");
 const { DataTypes } = require("sequelize");
 
 class ElevatorController {
@@ -122,10 +123,7 @@ class ElevatorController {
     }
   }
 
-  static async changeFloor(
-    id,
-    nextFloor
-  ) {
+  static async changeFloor(id, nextFloor) {
     var currntStage = await this.getByID(id);
 
     if (currntStage["status"] != 200) {
@@ -171,6 +169,89 @@ class ElevatorController {
     } catch (error) {
       return outputFormats.errorOutput(`Internal server error: ${error}`, 500);
     }
+  }
+
+  static async assignDirection(newFloorStop) {
+    var elevatorsData = await this.getAllData();
+
+    if (elevatorsData["status"] != 200) {
+      return data;
+    } else if (directionsData["status"] != 200) {
+      return directionsData;
+    }
+
+    var elevatorsObject = {
+      id: [],
+      currentFloor: [],
+      state: [],
+      signal: [],
+    };
+
+    elevatorsData["results"].forEach((item) => {
+      elevatorsObject.id.push(item.id);
+      elevatorsObject.currentFloor.push(item.current_floor);
+      elevatorsObject.state.push(item.state);
+      elevatorsObject.signal.push(item.signal);
+    });
+
+    var newDirection = {
+      direction_floor_number: null,
+      elevator_direction_id: null,
+    };
+
+    for (let i = 0; i < elevatorsObject["id"].length; i++) {
+      if (elevatorsObject["currentFloor"][i] == newFloorStop) {
+        newDirection["direction_floor_number"] = newFloorStop;
+        newDirection["elevator_direction_id"] = elevatorsObject["id"][i];
+        break;
+      }
+      if (newDirection["direction_floor_number"]) {
+        if (
+          (elevatorsObject["currentFloor"][i] < newFloorStop) &
+          [0, 1].includes(elevatorsObject["signal"][i])
+        ) {
+          if (
+            newDirection["direction_floor_number"] >
+            elevatorsObject["currentFloor"][i]
+          ) {
+            newDirection["direction_floor_number"] =
+              elevatorsObject["currentFloor"][i];
+            newDirection["elevator_direction_id"] = elevatorsObject["id"][i];
+          }
+        } else if (
+          (elevatorsObject["currentFloor"][i] > newFloorStop) &
+          [0, 2].includes(
+            elevatorsObject["signal"][i] &
+              (newDirection["direction_floor_number"] <
+                elevatorsObject["currentFloor"][i])
+          )
+        ) {
+          newDirection["direction_floor_number"] =
+            elevatorsObject["currentFloor"][i];
+          newDirection["elevator_direction_id"] = elevatorsObject["id"][i];
+        }
+      } else {
+        if (
+          (elevatorsObject["currentFloor"][i] < newFloorStop) &
+          [0, 1].includes(elevatorsObject["signal"][i])
+        ) {
+          newDirection["direction_floor_number"] =
+            elevatorsObject["currentFloor"][i];
+          newDirection["elevator_direction_id"] = elevatorsObject["id"][i];
+        } else if (
+          (elevatorsObject["currentFloor"][i] > newFloorStop) &
+          [0, 2].includes(elevatorsObject["signal"][i])
+        ) {
+          newDirection["direction_floor_number"] =
+            elevatorsObject["currentFloor"][i];
+          newDirection["elevator_direction_id"] = elevatorsObject["id"][i];
+        }
+      }
+    }
+
+    var results = await Direction_listController.createDirection(newDirection);
+
+    return results;
   }
 }
 
