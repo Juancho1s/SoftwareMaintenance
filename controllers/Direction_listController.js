@@ -66,7 +66,7 @@ class Direction_listController {
       return outputFormats.errorOutput(`Internal server error: ${error}`, 500);
     }
   }
-
+  
   static async getDataByForeign(elevatorId) {
     try {
       const allDirections = await direction_listORM.findAll({

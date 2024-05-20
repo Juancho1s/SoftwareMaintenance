@@ -52,7 +52,7 @@ class ElevatorController {
       return;
     } else if (isNaN(id)) {
       return outputFormats.errorOutput(
-        `Bad request: the parameter on the URL '/elevators/<<id>>' must be integer.`,
+        `Bad request: the parameter on the 'id' must be integer.`,
         400
       );
     }
@@ -124,28 +124,15 @@ class ElevatorController {
   }
 
   static async changeFloor(id, nextFloor) {
-    var currntStage = await this.getByID(id);
+    var elevators = await this.getAllData();
 
-    if (currntStage["status"] != 200) {
-      return currntStage;
+    if (elevators["status"] != 200) {
+      return elevators;
     }
 
-    switch (currntStage[0].dataValues) {
-      case 0:
-        break;
-
-      case 1:
-        break;
-
-      case 2:
-        break;
-
-      case 3:
-        break;
-
-      default:
-        break;
-    }
+    elevators.forEach(item => {
+      
+    });
 
     try {
       var results = await elevatorORM.update(
@@ -238,6 +225,17 @@ class ElevatorController {
           elevatorAux.direction = 2;
         }
       }
+    }
+
+    if (elevatorAux.id == null) {
+      responses.push(
+        outputFormats.errorOutput(
+          "Conflict, there isn't any available elevator",
+          409
+        )
+      );
+
+      return responses;
     }
 
     if (elevatorAux["state"] == 0) {
