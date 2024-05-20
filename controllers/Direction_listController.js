@@ -66,11 +66,14 @@ class Direction_listController {
       return outputFormats.errorOutput(`Internal server error: ${error}`, 500);
     }
   }
-  
-  static async getDataByForeign(elevatorId) {
+
+  static async getDataByForeign(elevatorId, order) {
     try {
       const allDirections = await direction_listORM.findAll({
         where: { direction_elevator_id: elevatorId },
+        order: [
+          ['direction_floor_number', order]
+        ]
       });
       if (allDirections) {
         return outputFormats.okOutput(

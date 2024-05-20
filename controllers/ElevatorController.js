@@ -1,4 +1,4 @@
-const { elevatorORM } = require("../models/ElevatorORM");
+const { elevatorORM, direction_listORM } = require("../models/ElevatorORM");
 const { outputFormats } = require("./services/formats");
 const { Direction_listController } = require("./Direction_listController");
 const { DataTypes } = require("sequelize");
@@ -123,27 +123,15 @@ class ElevatorController {
     }
   }
 
-  static async changeFloor(id, nextFloor) {
-    var elevators = await this.getAllData();
-
-    if (elevators["status"] != 200) {
-      return elevators;
-    }
-
-    elevators.forEach(item => {
-      
-    });
-
+  static async modifyFloor(nextFloor, id) {
+    const updateFields = {
+      current_floor: nextFloor,
+      last_change: Date.now(),
+    };
     try {
-      var results = await elevatorORM.update(
-        {
-          floor: req.body.floor,
-          last_change: Date.now(),
-        },
-        {
-          where: { id: req.params.id },
-        }
-      );
+      var results = await elevatorORM.update(updateFields, {
+        where: { id: id },
+      });
       if (results) {
         return outputFormats.okOutput(
           "Data modified successfully!",
@@ -151,11 +139,109 @@ class ElevatorController {
           results
         );
       } else {
-        return outputFormats.errorOutput("No data modified", 404);
+        return outputFormats.errorOutput("No data found to modifie", 404);
       }
     } catch (error) {
       return outputFormats.errorOutput(`Internal server error: ${error}`, 500);
     }
+  }
+
+  static async changeFloor(id, nextFloor) {
+    var results = [];
+    var elevators = await this.getAllData();
+
+    if (elevators["status"] != 200) {
+      results.push(elevators);
+      return results;
+    }
+
+    elevators.forEach(async (item) => {
+      var results = [];
+      var data = item.dataValues;
+
+      var mod = null;
+
+      switch (data.state) {
+        case 0:
+          var stops = await Direction_listController.getDataByForeign(data.id, "ASC");
+
+          if (stops.status == 200) {
+            if (stops.results[0].dataValues.direction_floor_number > data.current_floor) {
+              mod = await this.modifyState({state: 1}, data.id);
+
+              results.push(mod);
+            } else {
+              mod = await this.modifyState({state: 1}, data.id);
+
+              results.push(mod);
+            }
+          }
+          break;
+
+        case 1:
+          var stops = await Direction_listController.getDataByForeign(
+            data.id,
+            "ASC"
+          );
+
+          if (stops.status != 200) {
+            results.push(stops);
+            break;
+          }
+
+          var nextFloors = stops.dataValues[0];
+
+          if (data.current_floor + 1 == nextFloors.direction_floor_number) {
+            mod = await this.modifyFloor(data.current_floor + 1, data.id);
+
+            results.push(mod);
+
+            if (mod.status != 200) {
+              break;
+            }
+
+            results.push(await this.modifyState({ state: 0 }, data.id));
+          } else {
+            results.push(
+              await this.modifyFloor(data.current_floor + 1, data.id)
+            );
+          }
+          break;
+
+        case 2:
+          var stops = await Direction_listController.getDataByForeign(
+            data.id,
+            "DESC"
+          );
+
+          if (stops.status != 200) {
+            results.push(stops);
+            break;
+          }
+
+          var nextFloors = stops.dataValues[0];
+
+          if (data.current_floor - 1 == nextFloors.direction_floor_number) {
+            var mod = await this.modifyFloor(data.current_floor - 1, data.id);
+
+            results.push(mod);
+
+            if (mod.status != 200) {
+              break;
+            }
+
+            results.push(await this.modifyState({ state: 0 }, data.id));
+          } else {
+            results.push(
+              await this.modifyFloor(data.current_floor - 1, data.id)
+            );
+          }
+          break;
+
+        default:
+          break;
+      }
+    });
   }
 
   static async assignDirection(newFloorStop) {
