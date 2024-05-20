@@ -2,9 +2,12 @@ const { direction_listORM } = require("../models/ElevatorORM");
 const { outputFormats } = require("./services/formats");
 
 class Direction_listController {
-  static async createDirection(newDirection) {
+  static async createDirection(direction_floor_number, elevator_direction_id) {
     try {
-      const results = await direction_listORM.create(newDirection);
+      const results = await direction_listORM.create({
+        direction_floor_number: direction_floor_number,
+        elevator_direction_id: elevator_direction_id,
+      });
       if (results) {
         return outputFormats.okOutput(
           "The new direction has been successfully created.",
@@ -78,7 +81,6 @@ class Direction_listController {
       }
 
       return outputFormats.errorOutput("No data retrieved", 404);
-
     } catch (error) {
       return outputFormats.errorOutput(`Internal server error: ${error}`, 500);
     }

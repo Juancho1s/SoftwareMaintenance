@@ -2,9 +2,6 @@ var express = require("express");
 var router = express.Router();
 
 const { ElevatorController } = require("../controllers/ElevatorController");
-const {
-  Direction_listController,
-} = require("../controllers/Direction_listController");
 
 /* GET home page. */
 router.get("/", function (req, res, next) {
@@ -27,10 +24,8 @@ router.put("/elevators/:id", async function (req, res, next) {
 });
 
 /* Posts */
-router.post("/directions/:elevator_id", async function (req, res, next) {});
-router.post("/carries/:elevator_id", async function (req, res, next) {
-  
-  res.json({});
+router.post("/directions/:floor", async function (req, res, next) {
+  res.json(await ElevatorController.assignDirection(req.params.floor));
 });
 
 module.exports = router;

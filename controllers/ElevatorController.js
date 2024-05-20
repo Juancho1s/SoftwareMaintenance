@@ -176,16 +176,25 @@ class ElevatorController {
 
     if (elevatorsData["status"] != 200) {
       return data;
-    } else if (directionsData["status"] != 200) {
-      return directionsData;
     }
 
+    var responses = [];
     var elevatorsObject = {
       id: [],
       currentFloor: [],
       state: [],
       signal: [],
     };
+    var newDirection = {
+      direction_floor_number: newFloorStop,
+      elevator_direction_id: null,
+    };
+    var elevatorAux = {
+      id: null,
+      state: null,
+      direction: null,
+    };
+    var proximity = null;
 
     elevatorsData["results"].forEach((item) => {
       elevatorsObject.id.push(item.id);
@@ -194,64 +203,63 @@ class ElevatorController {
       elevatorsObject.signal.push(item.signal);
     });
 
-    var newDirection = {
-      direction_floor_number: null,
-      elevator_direction_id: null,
-    };
-
     for (let i = 0; i < elevatorsObject["id"].length; i++) {
       if (elevatorsObject["currentFloor"][i] == newFloorStop) {
-        newDirection["direction_floor_number"] = newFloorStop;
-        newDirection["elevator_direction_id"] = elevatorsObject["id"][i];
-        break;
-      }
-      if (newDirection["direction_floor_number"]) {
-        if (
-          (elevatorsObject["currentFloor"][i] < newFloorStop) &
-          [0, 1].includes(elevatorsObject["signal"][i])
-        ) {
-          if (
-            newDirection["direction_floor_number"] >
-            elevatorsObject["currentFloor"][i]
-          ) {
-            newDirection["direction_floor_number"] =
-              elevatorsObject["currentFloor"][i];
-            newDirection["elevator_direction_id"] = elevatorsObject["id"][i];
-          }
-        } else if (
-          (elevatorsObject["currentFloor"][i] > newFloorStop) &
-          [0, 2].includes(
-            elevatorsObject["signal"][i] &
-              (newDirection["direction_floor_number"] <
-                elevatorsObject["currentFloor"][i])
-          )
-        ) {
-          newDirection["direction_floor_number"] =
-            elevatorsObject["currentFloor"][i];
-          newDirection["elevator_direction_id"] = elevatorsObject["id"][i];
+        if (elevatorsObject["state"][i] != 0) {
+          responses.push(
+            await this.modifyState({ state: 0 }, elevatorsData["id"][i])
+          );
         }
-      } else {
-        if (
-          (elevatorsObject["currentFloor"][i] < newFloorStop) &
-          [0, 1].includes(elevatorsObject["signal"][i])
-        ) {
-          newDirection["direction_floor_number"] =
-            elevatorsObject["currentFloor"][i];
-          newDirection["elevator_direction_id"] = elevatorsObject["id"][i];
-        } else if (
-          (elevatorsObject["currentFloor"][i] > newFloorStop) &
-          [0, 2].includes(elevatorsObject["signal"][i])
-        ) {
-          newDirection["direction_floor_number"] =
-            elevatorsObject["currentFloor"][i];
-          newDirection["elevator_direction_id"] = elevatorsObject["id"][i];
+        return responses;
+      }
+
+      if (
+        (elevatorsObject["currentFloor"][i] < newFloorStop) &
+        [0, 1].includes(elevatorsObject["state"][i])
+      ) {
+        var up = newFloorStop - elevatorsObject["currentFloor"][i];
+
+        if ((proximity == null) | (up < proximity)) {
+          proximity = up;
+          elevatorAux.id = elevatorsObject["id"][i];
+          elevatorAux.state = elevatorsObject["state"][i];
+          elevatorAux.direction = 1;
+        }
+      } else if (
+        (elevatorsObject["currentFloor"][i] > newFloorStop) &
+        [0, 2].includes(elevatorsObject["state"][i])
+      ) {
+        var down = elevatorsObject["currentFloor"][i] - newFloorStop;
+
+        if ((proximity == null) | (down < proximity)) {
+          proximity = down;
+          elevatorAux.id = elevatorsObject["id"][i];
+          elevatorAux.state = elevatorsObject["state"][i];
+          elevatorAux.direction = 2;
         }
       }
     }
 
-    var results = await Direction_listController.createDirection(newDirection);
+    if (elevatorAux["state"] == 0) {
+      responses.push(
+        await this.modifyState({ state: elevatorAux.direction }, elevatorAux.id)
+      );
+    }
 
-    return results;
+    newDirection.elevator_direction_id = elevatorAux.id;
+
+    responses.push(
+      await Direction_listController.createDirection(
+        newDirection.direction_floor_number,
+        newDirection.elevator_direction_id
+      )
+    );
+
+    return outputFormats.okOutput(
+      "The new floor stop was already processed",
+      200,
+      responses
+    );
   }
 }
 
