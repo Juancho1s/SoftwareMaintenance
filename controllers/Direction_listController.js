@@ -70,12 +70,11 @@ class Direction_listController {
   static async getDataByForeign(elevatorId, order) {
     try {
       const allDirections = await direction_listORM.findAll({
-        where: { direction_elevator_id: elevatorId },
-        order: [
-          ['direction_floor_number', order]
-        ]
+        attributes: ["id", "direction_floor_number", "elevator_direction_id"], // Specify the columns to select
+        where: { elevator_direction_id: elevatorId },
+        order: [["direction_floor_number", order]],
       });
-      if (allDirections) {
+      if (allDirections.length > 0) {
         return outputFormats.okOutput(
           "All directions have been successfully retrieved.",
           200,

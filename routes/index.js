@@ -22,6 +22,9 @@ router.get("/elevators/:id", async function (req, res, next) {
 router.put("/elevators/:id", async function (req, res, next) {
   res.json(await ElevatorController.modifyState(req.body, req.params.id));
 });
+router.put("/directions/update", async function(req, res, next){
+  res.json(await ElevatorController.changeFloor());
+});
 
 /* Posts */
 router.post("/directions/:floor", async function (req, res, next) {

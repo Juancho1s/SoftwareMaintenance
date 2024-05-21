@@ -52,16 +52,8 @@ const direction_listORM = sequelize.define(
         key: "id",
       },
     },
-  },
-  {
+  },{
     timestamps: false,
-    primaryKey: false,
-    indexes: [
-      {
-        unique: true,
-        fields: ["direction_floor_number", "elevator_direction_id"],
-      },
-    ],
   }
 );
 

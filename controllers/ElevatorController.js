@@ -146,7 +146,7 @@ class ElevatorController {
     }
   }
 
-  static async changeFloor(id, nextFloor) {
+  static async changeFloor() {
     var results = [];
     var elevators = await this.getAllData();
 
@@ -154,10 +154,9 @@ class ElevatorController {
       results.push(elevators);
       return results;
     }
-
-    elevators.forEach(async (item) => {
-      var results = [];
-      var data = item.dataValues;
+  
+    for (let i = 0; i < elevators.results.length; i++) {
+      var data = elevators.results[i].dataValues;
 
       var mod = null;
 
@@ -166,7 +165,8 @@ class ElevatorController {
           var stops = await Direction_listController.getDataByForeign(data.id, "ASC");
 
           if (stops.status == 200) {
-            if (stops.results[0].dataValues.direction_floor_number > data.current_floor) {
+            let values = stops.results[0];
+            if (values.dataValues.direction_floor_number > data.current_floor) {
               mod = await this.modifyState({state: 1}, data.id);
 
               results.push(mod);
@@ -189,17 +189,24 @@ class ElevatorController {
             break;
           }
 
-          var nextFloors = stops.dataValues[0];
+          var queryData = stops.results[0];
+          var direction = queryData.dataValues.direction_floor_number;
 
-          if (data.current_floor + 1 == nextFloors.direction_floor_number) {
+          if (data.current_floor + 1 == direction) {
             mod = await this.modifyFloor(data.current_floor + 1, data.id);
-
-            results.push(mod);
-
+            
             if (mod.status != 200) {
               break;
             }
+            results.push(mod);
 
+            mod = await Direction_listController.deleteDirection(direction);
+
+            if (mod.status != 200) {
+              break
+            }
+            results.push(mod);
+            
             results.push(await this.modifyState({ state: 0 }, data.id));
           } else {
             results.push(
@@ -219,16 +226,23 @@ class ElevatorController {
             break;
           }
 
-          var nextFloors = stops.dataValues[0];
+          var queryData = stops.results[0];
+          var direction = queryData.dataValues.direction_floor_number;
 
-          if (data.current_floor - 1 == nextFloors.direction_floor_number) {
-            var mod = await this.modifyFloor(data.current_floor - 1, data.id);
-
-            results.push(mod);
+          if (data.current_floor - 1 == direction) {
+            mod = await this.modifyFloor(data.current_floor - 1, data.id);
 
             if (mod.status != 200) {
               break;
             }
+            results.push(mod);
+
+            mod = await Direction_listController.deleteDirection(direction);
+
+            if (mod.status != 200) {
+              break
+            }
+            results.push(mod);
 
             results.push(await this.modifyState({ state: 0 }, data.id));
           } else {
@@ -241,7 +255,8 @@ class ElevatorController {
         default:
           break;
       }
-    });
+    }
+    return results;
   }
 
   static async assignDirection(newFloorStop) {
