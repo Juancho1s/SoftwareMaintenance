@@ -1,4 +1,4 @@
-const { elevatorORM } = require("../models/ElevatorORM");
+const { elevatorORM, direction_listORM } = require("../models/ElevatorORM");
 const { outputFormats } = require("./services/formats");
 const { Direction_listController } = require("./Direction_listController");
 const { DataTypes } = require("sequelize");
@@ -267,8 +267,7 @@ class ElevatorController {
     let responses = [];
 
     if (elevator.status != 200) {
-      responses.push(elevator);
-      return responses;
+      return outputFormats.errorOutput("There is no processable data", 500);
     }
     let elevatorData = elevator.dataValues;
 
@@ -296,7 +295,11 @@ class ElevatorController {
                 elevatorId
               )
             );
-            return outputFormats.okOutput("The new destination has been already set", 200, responses);
+            return outputFormats.okOutput(
+              "The new destination has been already set",
+              200,
+              responses
+            );
           }
         }
         break;
@@ -309,7 +312,11 @@ class ElevatorController {
               elevatorId
             )
           );
-          return outputFormats.okOutput("The new destination has been already set", 200, responses);
+          return outputFormats.okOutput(
+            "The new destination has been already set",
+            200,
+            responses
+          );
         }
         break;
 
@@ -321,7 +328,11 @@ class ElevatorController {
               elevatorId
             )
           );
-          return outputFormats.okOutput("The new destination has been already set", 200, responses);
+          return outputFormats.okOutput(
+            "The new destination has been already set",
+            200,
+            responses
+          );
         }
         break;
 
@@ -329,11 +340,79 @@ class ElevatorController {
         return outputFormats.errorOutput("There is no processable data", 500);
         break;
     }
-    return outputFormats.errorOutput("The floor requeste is not yet available for the current elevator", 409);
+    return outputFormats.errorOutput(
+      "The floor requeste is not yet available for the current elevator",
+      409
+    );
   }
 
-  static async requestElevator(direction, fromFloor){
-    
+  static async requestElevator(direction, fromFloor) {
+    let elevators = await this.getAllData();
+
+    if (elevators.status != 200) {
+      return outputFormats.errorOutput("There is no processable data", 500);
+    }
+    let candidate = {
+      id: null,
+      proximity: null,
+    };
+
+    for (let i = 0; i < elevators.length; i++) {
+      const currentElevator = elevators[i].dataValues;
+
+      if (direction == 1) {
+        let proximity = fromFloor - currentElevator.current_floor;
+
+        if (
+          [0, direction].includes(currentElevator.state) &
+          (currentElevator.current_floor < fromFloor) &
+          ((candidate.proximity > proximity) |
+            (candidate.proximity == null))
+        ) {
+          candidate.id = currentElevator.id;
+          candidate.proximity = proximity;
+        }
+      } else if (direction == 2) {
+        let proximity = currentElevator.current_floor - fromFloor;
+
+        if (
+          [0, direction].includes(currentElevator.state) &
+          (currentElevator.current_floor > fromFloor) &
+          ((candidate.proximity > proximity) |
+            (candidate.proximity == null))
+        ) {
+          candidate = currentElevator.id;
+          candidate.proximity = proximity;
+        }
+      } else {
+        return outputFormats.errorOutput("The direction is not valid", 400);
+      }
+    }
+
+    if (candidate.id == null) {
+      return outputFormats.errorOutput(
+        "There is no elevator available for the current direction",
+        400
+      );
+    }
+
+    let direction = Direction_listController.createDirection(
+      fromFloor,
+      candidate.id
+    );
+
+    if (direction.status == 200) {
+      return outputFormats.okOutput(
+        "The elevator has been requested",
+        200,
+        direction
+      );
+    }
+
+    return outputFormats.errorOutput(
+      "There was a problem with the request of the elevator",
+      500
+    );
   }
 }
 
