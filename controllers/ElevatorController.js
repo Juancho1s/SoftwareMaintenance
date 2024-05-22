@@ -1,4 +1,4 @@
-const { elevatorORM, direction_listORM } = require("../models/ElevatorORM");
+const { elevatorORM } = require("../models/ElevatorORM");
 const { outputFormats } = require("./services/formats");
 const { Direction_listController } = require("./Direction_listController");
 const { DataTypes } = require("sequelize");
@@ -154,7 +154,7 @@ class ElevatorController {
       results.push(elevators);
       return results;
     }
-  
+
     for (let i = 0; i < elevators.results.length; i++) {
       var data = elevators.results[i].dataValues;
 
@@ -162,16 +162,19 @@ class ElevatorController {
 
       switch (data.state) {
         case 0:
-          var stops = await Direction_listController.getDataByForeign(data.id, "ASC");
+          var stops = await Direction_listController.getDataByForeign(
+            data.id,
+            "ASC"
+          );
 
           if (stops.status == 200) {
             let values = stops.results[0];
             if (values.dataValues.direction_floor_number > data.current_floor) {
-              mod = await this.modifyState({state: 1}, data.id);
+              mod = await this.modifyState({ state: 1 }, data.id);
 
               results.push(mod);
             } else {
-              mod = await this.modifyState({state: 1}, data.id);
+              mod = await this.modifyState({ state: 1 }, data.id);
 
               results.push(mod);
             }
@@ -194,7 +197,7 @@ class ElevatorController {
 
           if (data.current_floor + 1 == direction) {
             mod = await this.modifyFloor(data.current_floor + 1, data.id);
-            
+
             if (mod.status != 200) {
               break;
             }
@@ -203,10 +206,10 @@ class ElevatorController {
             mod = await Direction_listController.deleteDirection(direction);
 
             if (mod.status != 200) {
-              break
+              break;
             }
             results.push(mod);
-            
+
             results.push(await this.modifyState({ state: 0 }, data.id));
           } else {
             results.push(
@@ -240,7 +243,7 @@ class ElevatorController {
             mod = await Direction_listController.deleteDirection(direction);
 
             if (mod.status != 200) {
-              break
+              break;
             }
             results.push(mod);
 
@@ -259,106 +262,78 @@ class ElevatorController {
     return results;
   }
 
-  static async assignDirection(newFloorStop) {
-    var elevatorsData = await this.getAllData();
+  static async assignElevatorDirection(newFloorStop, elevatorId) {
+    let elevator = await this.getByID(elevatorId).results[0];
+    let responses = [];
 
-    if (elevatorsData["status"] != 200) {
-      return data;
-    }
-
-    var responses = [];
-    var elevatorsObject = {
-      id: [],
-      currentFloor: [],
-      state: [],
-      signal: [],
-    };
-    var newDirection = {
-      direction_floor_number: newFloorStop,
-      elevator_direction_id: null,
-    };
-    var elevatorAux = {
-      id: null,
-      state: null,
-      direction: null,
-    };
-    var proximity = null;
-
-    elevatorsData["results"].forEach((item) => {
-      elevatorsObject.id.push(item.id);
-      elevatorsObject.currentFloor.push(item.current_floor);
-      elevatorsObject.state.push(item.state);
-      elevatorsObject.signal.push(item.signal);
-    });
-
-    for (let i = 0; i < elevatorsObject["id"].length; i++) {
-      if (elevatorsObject["currentFloor"][i] == newFloorStop) {
-        if (elevatorsObject["state"][i] != 0) {
-          responses.push(
-            await this.modifyState({ state: 0 }, elevatorsData["id"][i])
-          );
-        }
-        return responses;
-      }
-
-      if (
-        (elevatorsObject["currentFloor"][i] < newFloorStop) &
-        [0, 1].includes(elevatorsObject["state"][i])
-      ) {
-        var up = newFloorStop - elevatorsObject["currentFloor"][i];
-
-        if ((proximity == null) | (up < proximity)) {
-          proximity = up;
-          elevatorAux.id = elevatorsObject["id"][i];
-          elevatorAux.state = elevatorsObject["state"][i];
-          elevatorAux.direction = 1;
-        }
-      } else if (
-        (elevatorsObject["currentFloor"][i] > newFloorStop) &
-        [0, 2].includes(elevatorsObject["state"][i])
-      ) {
-        var down = elevatorsObject["currentFloor"][i] - newFloorStop;
-
-        if ((proximity == null) | (down < proximity)) {
-          proximity = down;
-          elevatorAux.id = elevatorsObject["id"][i];
-          elevatorAux.state = elevatorsObject["state"][i];
-          elevatorAux.direction = 2;
-        }
-      }
-    }
-
-    if (elevatorAux.id == null) {
-      responses.push(
-        outputFormats.errorOutput(
-          "Conflict, there isn't any available elevator",
-          409
-        )
-      );
-
+    if (elevator.status != 200) {
+      responses.push(elevator);
       return responses;
     }
+    let elevatorData = elevator.dataValues;
 
-    if (elevatorAux["state"] == 0) {
-      responses.push(
-        await this.modifyState({ state: elevatorAux.direction }, elevatorAux.id)
-      );
+    switch (elevatorData.state) {
+      case 0:
+        let nextStops = (
+          await Direction_listController.getDataByForeign(elevatorId, "ASC")
+        ).results[0];
+        let nextStop = nextStops.dataValues;
+
+        if (elevatorData.current_floor < nextStop.direction_floor_number) {
+          if (newFloorStop > elevatorData.current_floor) {
+            responses.push(
+              await Direction_listController.createDirection(
+                newFloorStop,
+                elevatorId
+              )
+            );
+          }
+        } else {
+          if (newFloorStop < elevatorData.current_floor) {
+            responses.push(
+              await Direction_listController.createDirection(
+                newFloorStop,
+                elevatorId
+              )
+            );
+            return outputFormats.okOutput("The new destination has been already set", 200, responses);
+          }
+        }
+        break;
+
+      case 1:
+        if (newFloorStop > elevatorData.current_floor) {
+          responses.push(
+            await Direction_listController.createDirection(
+              newFloorStop,
+              elevatorId
+            )
+          );
+          return outputFormats.okOutput("The new destination has been already set", 200, responses);
+        }
+        break;
+
+      case 2:
+        if (newFloorStop < elevatorData.current_floor) {
+          responses.push(
+            await Direction_listController.createDirection(
+              newFloorStop,
+              elevatorId
+            )
+          );
+          return outputFormats.okOutput("The new destination has been already set", 200, responses);
+        }
+        break;
+
+      default:
+        return outputFormats.errorOutput("There is no processable data", 500);
+        break;
     }
+    return outputFormats.errorOutput("The floor requeste is not yet available for the current elevator", 409);
+  }
 
-    newDirection.elevator_direction_id = elevatorAux.id;
-
-    responses.push(
-      await Direction_listController.createDirection(
-        newDirection.direction_floor_number,
-        newDirection.elevator_direction_id
-      )
-    );
-
-    return outputFormats.okOutput(
-      "The new floor stop was already processed",
-      200,
-      responses
-    );
+  static async requestElevator(direction, fromFloor){
+    
   }
 }
 

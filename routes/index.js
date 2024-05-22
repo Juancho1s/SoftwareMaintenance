@@ -19,7 +19,7 @@ router.get("/elevators/:id", async function (req, res, next) {
 });
 
 /* Puts */
-router.put("/elevators/:id", async function (req, res, next) {
+router.put("/elevators/:direction", async function (req, res, next) {
   res.json(await ElevatorController.modifyState(req.body, req.params.id));
 });
 router.put("/directions/update", async function(req, res, next){
@@ -27,8 +27,8 @@ router.put("/directions/update", async function(req, res, next){
 });
 
 /* Posts */
-router.post("/directions/:floor", async function (req, res, next) {
-  res.json(await ElevatorController.assignDirection(req.params.floor));
+router.post("/directions/:floor/:elevator_id", async function(req, res, next){
+  res.json(await ElevatorController.assignElevatorDirection(req.params.floor, req.params.elevator_id));
 });
 
 module.exports = router;

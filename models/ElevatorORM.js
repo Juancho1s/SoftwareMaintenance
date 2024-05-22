@@ -52,10 +52,24 @@ const direction_listORM = sequelize.define(
         key: "id",
       },
     },
-  },{
+  },
+  {
     timestamps: false,
   }
 );
+
+const maintenance_floorsORM = sequelize.define("maintenance_floors", {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+    allowNull: false,
+  },
+  floor_number: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+});
 
 // Set up associations
 elevatorORM.hasMany(direction_listORM);
@@ -64,4 +78,4 @@ direction_listORM.belongsTo(elevatorORM, {
   foreignKey: "elevator_direction_id",
 });
 
-module.exports = { elevatorORM, direction_listORM };
+module.exports = { elevatorORM, direction_listORM, maintenance_floorsORM };
