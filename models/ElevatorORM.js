@@ -42,7 +42,6 @@ const direction_listORM = sequelize.define(
     },
     direction_floor_number: {
       type: DataTypes.INTEGER,
-      allowNull: false,
     },
     elevator_direction_id: {
       type: DataTypes.INTEGER,

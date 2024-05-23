@@ -203,7 +203,10 @@ class ElevatorController {
             }
             results.push(mod);
 
-            mod = await Direction_listController.deleteDirection(direction);
+            mod = await Direction_listController.deleteDirection(
+              direction,
+              data.id
+            );
 
             if (mod.status != 200) {
               break;
@@ -240,7 +243,10 @@ class ElevatorController {
             }
             results.push(mod);
 
-            mod = await Direction_listController.deleteDirection(direction);
+            mod = await Direction_listController.deleteDirection(
+              direction,
+              data.id
+            );
 
             if (mod.status != 200) {
               break;
@@ -365,63 +371,102 @@ class ElevatorController {
     if (elevators.status != 200) {
       return outputFormats.errorOutput("There is no processable data", 500);
     }
-    let response = null;
+
+    let results = null;
 
     for (let i = 0; i < elevators.results.length; i++) {
       const currentElevator = elevators.results[i].dataValues;
 
-      response = await this.assignElevatorDirection(direction, currentElevator.id);
+      let response = await this.assignElevatorDirection(
+        direction,
+        currentElevator.id
+      );
+        switch (currentElevator.state) {
+          case 0:
+            let directionList = await Direction_listController.getDataByForeign(
+              currentElevator.id,
+              "DESC"
+            );
 
-      if (response.status == 200) {
-        
-      }
+            let direction_floor_number = directionList.results[0];
 
-      // if (direction == 1) {
-      //   let prox = Math.abs(fromFloor - currentElevator.current_floor);
+            if (
+              direction_floor_number.direction_floor_number >
+              currentElevator.current_floor
+            ) {
+              await Direction_listController.deleteRangeById(
+                currentElevator.id,
+                fromFloor,
+                "ASC"
+              );
+              results = await elevatorORM.update(
+                { state: 0, current_floor: fromFloor, signal: 0 },
+                { where: { id: currentElevator.id } }
+              );
+            } else if(
+              direction_floor_number.direction_floor_number <
+              currentElevator.current_floor
+            ) {
+              await Direction_listController.deleteRangeById(
+                currentElevator.id,
+                fromFloor,
+                "DESC"
+              );
+              results = await elevatorORM.update(
+                { state: 0, current_floor: fromFloor, signal: 0 },
+                { where: { id: currentElevator.id } }
+              );
+            }else {
+              results = await elevatorORM.update(
+                { state: 0, current_floor: fromFloor, signal: 0 },
+                { where: { id: currentElevator.id } }
+              );
+            }
 
-      //   if (
-      //     [0, direction].includes(currentElevator.state) &
-      //     ((candidate.proximity > prox) | (candidate.proximity == null))
-      //   ) {
-      //     candidate.id = currentElevator.id;
-      //     candidate.proximity = prox;
-      //   }
-      // } else if (direction == 2) {
-      //   let prox = Math.abs(currentElevator.current_floor - fromFloor);
+            break;
 
-      //   if (
-      //     [0, direction].includes(currentElevator.state) &
-      //     ((candidate.proximity > prox) | (candidate.proximity == null))
-      //   ) {
-      //     candidate.id = currentElevator.id;
-      //     candidate.proximity = prox;
-      //   }
-      // }
+          case 1:
+            if (currentElevator.current_floor <= fromFloor) {
+              await Direction_listController.deleteRangeById(
+                currentElevator.id,
+                fromFloor,
+                "ASC"
+              );
+
+              results = await elevatorORM.update(
+                { state: 0, current_floor: fromFloor, signal: 0 },
+                { where: { id: currentElevator.id } }
+              );
+            }
+
+            break;
+
+          case 2:
+            if (currentElevator.current_floor >= fromFloor) {
+              await Direction_listController.deleteRangeById(
+                currentElevator.id,
+                fromFloor,
+                "DESC"
+              );
+
+              results = await elevatorORM.update(
+                { state: 0, current_floor: fromFloor, signal: 0 },
+                { where: { id: currentElevator.id } }
+              );
+            }
+
+            break;
+        }
+
+        if (results != null) {
+          return outputFormats.okOutput("Elevator assigned", 200, results);
+        }
+      await Direction_listController.deleteRangeById(currentElevator.id, direction);
     }
 
-    // if (candidate.id == null) {
-    //   return outputFormats.errorOutput(
-    //     "There is no elevator available for the current direction",
-    //     400
-    //   );
-    // }
-
-    // let newDirection = await Direction_listController.createDirection(
-    //   fromFloor,
-    //   candidate.id
-    // );
-
-    // if (newDirection.status == 200) {
-    //   return outputFormats.okOutput(
-    //     "The elevator has been requested",
-    //     200,
-    //     direction
-    //   );
-    // }
-
     return outputFormats.errorOutput(
-      "There was a problem with the request of the elevator",
-      500
+      "There is no elevator available for the current direction",
+      400
     );
   }
 }

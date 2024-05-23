@@ -1,5 +1,6 @@
 const { direction_listORM } = require("../models/ElevatorORM");
 const { outputFormats } = require("./services/formats");
+const { Op } = require("sequelize");
 
 class Direction_listController {
   static async createDirection(direction_floor_number, elevator_direction_id) {
@@ -25,7 +26,7 @@ class Direction_listController {
     }
   }
 
-  static async deleteDirection(floor) {
+  static async deleteDirection(floor, elevatorId) {
     if (isNaN(floor)) {
       return outputFormats.errorOutput(
         `The 'floor' parameter must be a number`,
@@ -34,7 +35,10 @@ class Direction_listController {
     }
     try {
       const results = await direction_listORM.destroy({
-        where: { direction_floor_number: floor },
+        where: {
+          direction_floor_number: floor,
+          elevator_direction_id: elevatorId,
+        },
       });
       if (results) {
         return outputFormats.okOutput(
@@ -45,6 +49,37 @@ class Direction_listController {
       }
 
       return outputFormats.errorOutput(`No data found to delete`, 404);
+    } catch (error) {
+      return outputFormats.errorOutput(`Internal server error: ${error}`, 500);
+    }
+  }
+
+  static async deleteRangeById(elevator_direction_id, floorNumber, order) {
+    try {
+      if (order == "ASC") {
+        const results = await direction_listORM.destroy({
+          where: {
+            elevator_direction_id: elevator_direction_id,
+            direction_floor_number: {
+              [Op.lte]: floorNumber,
+            },
+          },
+        });
+      } else if (order == "DESC") {
+        const results = await direction_listORM.destroy({
+          where: {
+            elevator_direction_id: elevator_direction_id,
+            direction_floor_number: {
+              [Op.gte]: floorNumber,
+            },
+          },
+        });
+      } else {
+        return outputFormats.errorOutput(
+          `The 'order' parameter must be either 'ASC' or 'DESC'`,
+          400
+        );
+      }
     } catch (error) {
       return outputFormats.errorOutput(`Internal server error: ${error}`, 500);
     }
