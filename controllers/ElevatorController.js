@@ -169,15 +169,10 @@ class ElevatorController {
 
           if (stops.status == 200) {
             let values = stops.results[0];
-            if (values.dataValues.direction_floor_number > data.current_floor) {
-              mod = await this.modifyState({ state: 1 }, data.id);
-
-              results.push(mod);
-            } else {
-              mod = await this.modifyState({ state: 2 }, data.id);
-
-              results.push(mod);
-            }
+            mod = await elevatorORM.update(
+              { current_floor: values.direction_floor_number },
+              { where: { id: data.id } }
+            );
           }
           break;
 
