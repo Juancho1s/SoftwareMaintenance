@@ -174,7 +174,7 @@ class ElevatorController {
 
               results.push(mod);
             } else {
-              mod = await this.modifyState({ state: 1 }, data.id);
+              mod = await this.modifyState({ state: 2 }, data.id);
 
               results.push(mod);
             }
@@ -263,20 +263,33 @@ class ElevatorController {
   }
 
   static async assignElevatorDirection(newFloorStop, elevatorId) {
-    let elevator = await this.getByID(elevatorId).results[0];
+    let elevatorQuery = await this.getByID(elevatorId);
     let responses = [];
 
-    if (elevator.status != 200) {
+    if (elevatorQuery.status != 200) {
       return outputFormats.errorOutput("There is no processable data", 500);
     }
-    let elevatorData = elevator.dataValues;
+    let elevatorData = elevatorQuery.results.dataValues;
 
     switch (elevatorData.state) {
       case 0:
-        let nextStops = (
-          await Direction_listController.getDataByForeign(elevatorId, "ASC")
-        ).results[0];
-        let nextStop = nextStops.dataValues;
+        let nextStops = await Direction_listController.getDataByForeign(
+          elevatorId,
+          "ASC"
+        );
+
+        if (nextStops.results == null) {
+          responses.push(
+            await Direction_listController.createDirection(
+              newFloorStop,
+              elevatorId
+            )
+          );
+
+          return responses;
+        }
+
+        let nextStop = nextStops.results[0].dataValues;
 
         if (elevatorData.current_floor < nextStop.direction_floor_number) {
           if (newFloorStop > elevatorData.current_floor) {
@@ -352,62 +365,59 @@ class ElevatorController {
     if (elevators.status != 200) {
       return outputFormats.errorOutput("There is no processable data", 500);
     }
-    let candidate = {
-      id: null,
-      proximity: null,
-    };
+    let response = null;
 
-    for (let i = 0; i < elevators.length; i++) {
-      const currentElevator = elevators[i].dataValues;
+    for (let i = 0; i < elevators.results.length; i++) {
+      const currentElevator = elevators.results[i].dataValues;
 
-      if (direction == 1) {
-        let proximity = fromFloor - currentElevator.current_floor;
+      response = await this.assignElevatorDirection(direction, currentElevator.id);
 
-        if (
-          [0, direction].includes(currentElevator.state) &
-          (currentElevator.current_floor < fromFloor) &
-          ((candidate.proximity > proximity) |
-            (candidate.proximity == null))
-        ) {
-          candidate.id = currentElevator.id;
-          candidate.proximity = proximity;
-        }
-      } else if (direction == 2) {
-        let proximity = currentElevator.current_floor - fromFloor;
-
-        if (
-          [0, direction].includes(currentElevator.state) &
-          (currentElevator.current_floor > fromFloor) &
-          ((candidate.proximity > proximity) |
-            (candidate.proximity == null))
-        ) {
-          candidate = currentElevator.id;
-          candidate.proximity = proximity;
-        }
-      } else {
-        return outputFormats.errorOutput("The direction is not valid", 400);
+      if (response.status == 200) {
+        
       }
+
+      // if (direction == 1) {
+      //   let prox = Math.abs(fromFloor - currentElevator.current_floor);
+
+      //   if (
+      //     [0, direction].includes(currentElevator.state) &
+      //     ((candidate.proximity > prox) | (candidate.proximity == null))
+      //   ) {
+      //     candidate.id = currentElevator.id;
+      //     candidate.proximity = prox;
+      //   }
+      // } else if (direction == 2) {
+      //   let prox = Math.abs(currentElevator.current_floor - fromFloor);
+
+      //   if (
+      //     [0, direction].includes(currentElevator.state) &
+      //     ((candidate.proximity > prox) | (candidate.proximity == null))
+      //   ) {
+      //     candidate.id = currentElevator.id;
+      //     candidate.proximity = prox;
+      //   }
+      // }
     }
 
-    if (candidate.id == null) {
-      return outputFormats.errorOutput(
-        "There is no elevator available for the current direction",
-        400
-      );
-    }
+    // if (candidate.id == null) {
+    //   return outputFormats.errorOutput(
+    //     "There is no elevator available for the current direction",
+    //     400
+    //   );
+    // }
 
-    let direction = Direction_listController.createDirection(
-      fromFloor,
-      candidate.id
-    );
+    // let newDirection = await Direction_listController.createDirection(
+    //   fromFloor,
+    //   candidate.id
+    // );
 
-    if (direction.status == 200) {
-      return outputFormats.okOutput(
-        "The elevator has been requested",
-        200,
-        direction
-      );
-    }
+    // if (newDirection.status == 200) {
+    //   return outputFormats.okOutput(
+    //     "The elevator has been requested",
+    //     200,
+    //     direction
+    //   );
+    // }
 
     return outputFormats.errorOutput(
       "There was a problem with the request of the elevator",
