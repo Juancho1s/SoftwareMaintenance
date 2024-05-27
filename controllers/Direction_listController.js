@@ -122,6 +122,29 @@ class Direction_listController {
       return outputFormats.errorOutput(`Internal server error: ${error}`, 500);
     }
   }
+
+  static async getDataByForeignUnlike(elevatorId, order, finder){
+    try {
+      const allDirections = await direction_listORM.findAll({
+        attributes: ["id", "direction_floor_number", "elevator_direction_id"], // Specify the columns to select
+        where: { elevator_direction_id: elevatorId,
+          direction_floor_number: {[Op.ne]: finder}
+         },
+        order: [["direction_floor_number", order]],
+      });
+      if (allDirections.length > 0) {
+        return outputFormats.okOutput(
+          "All directions have been successfully retrieved.",
+          200,
+          allDirections
+        );
+      }
+
+      return outputFormats.errorOutput("No data retrieved", 404);
+    } catch (error) {
+      return outputFormats.errorOutput(`Internal server error: ${error}`, 500);
+    }
+  }
 }
 
 module.exports = { Direction_listController };

@@ -24,47 +24,16 @@ router.get("/elevators", async function (req, res, next) {
 
   for (let i = 0; i < elevatorsData.results.length; i++) {
     const elevator = elevatorsData.results[i];
-
-    switch (elevator.state) {
-      case 1:
-        responsing.results.push({
-          current_floor: elevatorsData.results[i].current_floor,
-          id: elevatorsData.results[i].id,
-          last_change: elevatorsData.results[i].last_change,
-          signal: elevatorsData.results[i].signal,
-          state: elevatorsData.results[i].state,
-          direction: (
-            await Direction_listController.getDataByForeign(elevator.id, "ASC")
-          ).results,
-        });
-        break;
-
-      case 2:
-        responsing.results.push({
-          current_floor: elevatorsData.results[i].current_floor,
-          id: elevatorsData.results[i].id,
-          last_change: elevatorsData.results[i].last_change,
-          signal: elevatorsData.results[i].signal,
-          state: elevatorsData.results[i].state,
-          direction: (
-            await Direction_listController.getDataByForeign(elevator.id, "DESC")
-          ).results,
-        });
-        break;
-
-      default:
-        responsing.results.push({
-          current_floor: elevatorsData.results[i].current_floor,
-          id: elevatorsData.results[i].id,
-          last_change: elevatorsData.results[i].last_change,
-          signal: elevatorsData.results[i].signal,
-          state: elevatorsData.results[i].state,
-          direction: (
-            await Direction_listController.getDataByForeign(elevator.id, "ASC")
-          ).results,
-        });
-        break;
-    }
+    responsing.results.push({
+      current_floor: elevatorsData.results[i].current_floor,
+      id: elevatorsData.results[i].id,
+      last_change: elevatorsData.results[i].last_change,
+      signal: elevatorsData.results[i].signal,
+      state: elevatorsData.results[i].state,
+      direction: (
+        await Direction_listController.getDataByForeign(elevator.id, "ASC")
+      ).results,
+    });
   }
   res.json(responsing);
 });
